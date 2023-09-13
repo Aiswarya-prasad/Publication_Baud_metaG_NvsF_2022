@@ -7,12 +7,59 @@ library(reshape)
 library(ggrepel)
 library(qvalue)
 library(vegan)
+library(tidyverse)
+library(ggnewscale)
+library(ggrepel)
+library(vegan)
+library(ggpubr)
 
-#Filepaths
-datapath_raw <- "./"
-datapath <- "./community_composition/"
-figpath <- "./community_composition/"
-#Set the orders for the plots.
+# This function is from https://github.com/Russel88/MicEco/blob/91f8e6f5d67e0bfd018dc3b46da3994b1eadeb46/R/adonis_OmegaSq.R#L10
+#' Calculate (partial) Omega-squared (effect-size calculation) for PERMANOVA and add it to the input object
+#'
+#' @param adonisOutput An adonis object
+#' @param partial Should partial omega-squared be calculated (sample size adjusted). Default TRUE
+#' @return Original adonis object with the (partial) Omega-squared values added
+#' @import vegan
+#' @export
+adonis_OmegaSq <- function(adonisOutput, partial = TRUE){
+    if(!(is(adonisOutput, "adonis") || is(adonisOutput, "anova.cca")))
+        stop("Input should be an adonis object")
+    if (is(adonisOutput, "anova.cca")) {
+        aov_tab <- adonisOutput
+        aov_tab$MeanSqs <- aov_tab$SumOfSqs / aov_tab$Df
+        aov_tab$MeanSqs[length(aov_tab$Df)] <- NA
+    } else {
+        aov_tab <- adonisOutput$aov.tab
+    }
+    heading <- attr(aov_tab, "heading")
+    MS_res <- aov_tab[pmatch("Residual", rownames(aov_tab)), "MeanSqs"]
+    SS_tot <- aov_tab[rownames(aov_tab) == "Total", "SumsOfSqs"]
+    N <- aov_tab[rownames(aov_tab) == "Total", "Df"] + 1
+    if(partial){
+        omega <- apply(aov_tab, 1, function(x) (x["Df"]*(x["MeanSqs"]-MS_res))/(x["Df"]*x["MeanSqs"]+(N-x["Df"])*MS_res))
+        aov_tab$parOmegaSq <- c(omega[1:(length(omega)-2)], NA, NA)
+    } else {
+        omega <- apply(aov_tab, 1, function(x) (x["SumsOfSqs"]-x["Df"]*MS_res)/(SS_tot+MS_res))
+        aov_tab$OmegaSq <- c(omega[1:(length(omega)-2)], NA, NA)
+    }
+    if (is(adonisOutput, "adonis"))
+        cn_order <- c("Df", "SumsOfSqs", "MeanSqs", "F.Model", "R2",
+                      if (partial) "parOmegaSq" else "OmegaSq", "Pr(>F)")
+    else
+        cn_order <- c("Df", "SumOfSqs", "F", if (partial) "parOmegaSq" else "OmegaSq",
+                      "Pr(>F)")
+    aov_tab <- aov_tab[, cn_order]
+    attr(aov_tab, "names") <- cn_order
+    attr(aov_tab, "heading") <- heading
+    if (is(adonisOutput, "adonis"))
+        adonisOutput$aov.tab <- aov_tab
+    else
+        adonisOutput <- aov_tab
+    return(adonisOutput)
+}
+
+source("utilites.R")
+
 sample_order <- c('N01','N02','N03','N04','N06','N07','N08','N09','N10','N11','N12','N13','N14','N15','N16',
                   'F01','F02','F03','F04','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15','F16')
 phylo_list <- c("api","bapis","bifido","bom","com","firm4","firm5","fper","gilli","lkun","snod")
@@ -24,14 +71,11 @@ set1 <- brewer.pal(9,"Set1")
 phylo_col <- c(set1, "light grey", "#DFFF00")
 phylo_col_rv <- rev(phylo_col)
 treat_colors <- c("#D55E00","#56B4E9","#F0E442")
-
+samp_dt <- fread("SamplingGilles2019.csv")
+samp_dt <- samp_dt[, c("Sample", "Sample_type", "Location", "Number_guts", "Average_gut_mass")]
 
 ### Gut Weight comparisons
 
-samp_dt <- fread(paste0(datapath_raw, "SamplingGilles2019.csv"))
-samp_dt <- samp_dt[, c("Sample", "Sample_type", "Location", "Number_guts", "Average_gut_mass")]
-
-pdf(paste0(figpath, "gutweightplot.pdf"),onefile=TRUE,width=13)
 ggplot(samp_dt,
        aes(x=factor(Sample_type,levels=treatments),
            y = Average_gut_mass,
@@ -54,7 +98,7 @@ ggplot(samp_dt,
         text=element_text(size=22),
         plot.title=element_text(hjust=0.5),
         plot.subtitle=element_text(hjust=0.5))
-dev.off()
+ggsave("figures/gutweight_plot.pdf", width = 10, height = 12)
   
 ### Bacterial loads comparisons
 
@@ -64,7 +108,7 @@ actin_slope = -3.2699442250388
 UV_intercept = 36.5821936471122
 UV_slope = -3.35085896083287
 
-filepath <- paste0(datapath_raw, "20190813_AllHives.csv")
+filepath <- paste0("20190813_AllHives.csv")
 CT_dt <- fread(filepath, skip="Well Position")
 CT_dt <- fread(filepath, skip="Well Position", nrows = CT_dt[,sum(CT != '')])
 CT_dt <- merge(CT_dt[, mean(as.numeric(CT), na.rm=TRUE), keyby=c("Sample Name", "Target Name")], 
@@ -79,13 +123,30 @@ CT_dt[ Target %like% "UV", copies := 10^((AverageCT-UV_intercept)/UV_slope)]
 CT_dt[ Sample %like% "N", Host := "Nurses" ]
 CT_dt[ Sample %like% "F", Host := "Foragers" ]
 
-sampling_dt <- fread(paste0(datapath, "SamplingGilles2019.csv"))
+sampling_dt <- fread("SamplingGilles2019.csv")
 CT_dt <- merge.data.table(CT_dt, sampling_dt[,c("Sample", "DNA_yield")], by = "Sample", all.x = TRUE)
 CT_dt[, DNA := copies*DNA_yield/10]
 CT_dt[, Hive:=gsub("[NF]", "", Sample)]
 CT_dt[, copiesperngDNA:=copies/10]
+CT_ratio_dt <- merge.data.table(CT_dt[ Target %like% "Actin",],
+                                CT_dt[ Target %like% "UV",],
+                                by=c("Sample"))
+CT_ratio_dt[, ratio := copies.y / copies.x]
+med_act_copies <- median(CT_dt[ Target %like% "Actin", copies])
+CT_ratio_dt[ , Norm_copies := ratio * med_act_copies ]
+CT_ratio_dt <- merge.data.table(CT_ratio_dt, CT_dt[Target %like% "UV", c("Sample", "copiesperngDNA")], by="Sample", all.x = TRUE)
 
-pdf(paste0(figpath,"bacloadplot.pdf"),onefile=TRUE,width=8)
+CT_dt[ Target %like% "UV"]
+# calculate median of F and N
+median_N <- median(CT_dt[ Target %like% "UV" & Sample %like% "N", copiesperngDNA])
+median_F <- median(CT_dt[ Target %like% "UV" & Sample %like% "F", copiesperngDNA])
+copies_diff <- median_N / median_F
+median_F_size <- median(samp_dt[ Sample_type %like% "F", Average_gut_mass])
+median_N_size <- median(samp_dt[ Sample_type %like% "N", Average_gut_mass])
+size_diff <- median_N_size / median_F_size
+copies_diff
+size_diff
+
 ggplot(CT_dt[ Target %like% "UV"],
        aes(x=factor(Host,levels=treatments),
            y=copiesperngDNA,
@@ -108,11 +169,16 @@ ggplot(CT_dt[ Target %like% "UV"],
   scale_shape_manual(values=c(21,24))+
   theme(axis.text.x=element_text(angle=45,hjust=1),
         text=element_text(size=22),
-        plot.title=element_text(hjust=0.5), 
+        plot.title=element_text(hjust=0.5),
+        panel.background = element_rect(fill = "#f2f2f2", colour = NA),
+        panel.grid.major=element_line(color="white"),
+        panel.grid.minor=element_line(color="white"),
         plot.subtitle=element_text(hjust=0.5),
         axis.title.x=element_blank())
-dev.off()
-actin_copy_bplot <- ggplot(CT_dt[ Target %like% "Actin"], 
+  ggsave("figures/Fig1A-16S_copy_number_per_ng_DNA.pdf", width = 10, height = 12)
+
+
+ggplot(CT_dt[ Target %like% "Actin"], 
                         aes(x=factor(Host,levels=treatments), 
                             y=copies, 
                             fill=factor(Host,levels=treatments)))+
@@ -133,7 +199,13 @@ actin_copy_bplot <- ggplot(CT_dt[ Target %like% "Actin"],
   theme(axis.text.x=element_text(angle=45,hjust=1),
         text=element_text(size=22),
         plot.title=element_text(hjust=0.5),
+        panel.background = element_rect(fill = "#f2f2f2", colour = NA),
+        panel.grid.major=element_line(color="white"),
+        panel.grid.minor=element_line(color="white"),
         plot.subtitle=element_text(hjust=0.5))
+  ggsave("figures/Actin_copy_number.pdf", width = 10, height = 12)
+
+  
 uv_DNA_bplot <- ggplot(CT_dt[ Target %like% "UV"], 
                         aes(x=factor(Host,levels=treatments), 
                             y=DNA, 
@@ -164,7 +236,6 @@ CT_ratio_dt[, ratio := copies.y / copies.x]
 #CT_ratio_dt[, DNAratio := DNA.y / DNA.x]
 #CT_ratio_dt <- CT_ratio_dt[, c("Sample", "ratio")]
 
-pdf(paste0(figpath, "bacloadplot.pdf"), onefile=TRUE, width = 8)
 ggplot(CT_ratio_dt, 
        aes(x=factor(Host.y, levels=treatments),
            y=ratio,
@@ -185,9 +256,13 @@ ggplot(CT_ratio_dt,
   theme(axis.text.x=element_text(angle=45,hjust=1),
         axis.title.x = element_blank(),
         text=element_text(size=22),
+        panel.background = element_rect(fill = "#f2f2f2", colour = NA),
+        panel.grid.major=element_line(color="white"),
+        panel.grid.minor=element_line(color="white"),
         plot.title=element_text(hjust=0.5),
         plot.subtitle=element_text(hjust=0.5))
-dev.off()
+    ggsave("figures/16S_actin_ratio.pdf", width = 10, height = 12)
+
 med_act_copies <- median(CT_dt[ Target %like% "Actin", copies])
 CT_ratio_dt[ , Norm_copies := ratio * med_act_copies ]
 CT_ratio_dt <- merge.data.table(CT_ratio_dt, CT_dt[Target %like% "UV", c("Sample", "copiesperngDNA")], by="Sample", all.x = TRUE)
@@ -195,7 +270,7 @@ CT_ratio_dt <- merge.data.table(CT_ratio_dt, CT_dt[Target %like% "UV", c("Sample
 
 ### Read mapping proportions
 #Read data
-readnum_dt <- fread(paste0(datapath_raw,"readnumbers.csv"))
+readnum_dt <- fread("readnumbers.csv")
 setnames(readnum_dt, c("Sample","Raw","Bacterial_db","A_mellifera"))
 readnum_dt[, Leftover := Raw-Bacterial_db-A_mellifera]
 readnum_dt[, prop_bac := Bacterial_db/Raw]
@@ -204,7 +279,6 @@ reads_abs_stat <- wilcox.test(readnum_dt[Sample %like% "N", prop_bac],
                               readnum_dt[Sample %like% "F", prop_bac], paired = TRUE)
 readnum_mlt <- melt.data.table(readnum_dt, id.vars = "Sample", value.name = "Reads", variable.name = "Mapping")[!(Mapping %like% "prop" | Mapping %like% "Raw"),]
 
-pdf(paste0(figpath, "readnumbers.pdf"), onefile=TRUE, width=13)
 ggplot(readnum_mlt[ Mapping!="Raw",],
        aes(x=factor(Sample,
                     levels=sample_order),
@@ -219,10 +293,10 @@ ggplot(readnum_mlt[ Mapping!="Raw",],
   theme(axis.text.x=element_text(angle=45,hjust=1),
         text=element_text(size=22),
         plot.title=element_text(hjust=0.5))
-dev.off()
+ ggsave("figures/readnumbers.pdf", width = 10, height = 12)
 
 read_prop_mlt <- melt.data.table(readnum_dt, id.vars = "Sample", value.name = "Proportion", variable.name = "Mapping")[Mapping %like% "prop",]
-pdf(paste0(figpath, "readproportions.pdf"), onefile=TRUE, width=13)
+
 ggplot(read_prop_mlt,
        aes(x=factor(Sample,
                     levels=sample_order),
@@ -237,13 +311,14 @@ ggplot(read_prop_mlt,
   theme(axis.text.x=element_text(angle=45,hjust=1),
         text=element_text(size=22),
         plot.title=element_text(hjust=0.5))
-dev.off()
+      ggsave("figures/readproportions.pdf", width = 10, height = 12)
 
 read_hostbac_ratio <- copy(readnum_dt)
 read_hostbac_ratio[, readratio:=Bacterial_db/A_mellifera]
 tmp_ct_reads <- merge.data.table(CT_ratio_dt, read_hostbac_ratio[, c("Sample", "readratio")], by = "Sample")
 tmp_ct_reads[ Sample %like% "N", Host := "Nurses" ]
 tmp_ct_reads[ Sample %like% "F", Host := "Foragers" ]
+
 ggplot(tmp_ct_reads, aes(x=ratio, y=readratio, fill=factor(Host, levels=treatments)))+
   geom_point(aes(fill = factor(Host, levels = treatments)), 
              shape = 22, size = 6, position = position_dodge2(width = 0.6))+
@@ -264,7 +339,7 @@ ggplot(tmp_ct_reads, aes(x=ratio, y=readratio, fill=factor(Host, levels=treatmen
 #Read data
 phylo_all_dt <- data.table()
 for (i in phylo_list) {
-  tmp_dt <- fread(paste0(datapath, i, "_corecov_coord.txt"), header = TRUE)
+  tmp_dt <- fread(paste0("community_quantification/", i, "_corecov_coord.txt"), header = TRUE)
   tmp_all_dt <- as.data.table(aggregate(data=tmp_dt, Cov_ter ~ Sample + Cluster, sum))
   tmp_all_dt[, Phylo := i]
   phylo_all_dt <- rbind(phylo_all_dt, tmp_all_dt)
@@ -280,7 +355,7 @@ phylo_all_dt[ , Prop := Cov_ter / Sample_sum ]
 phylo_all_dt[ , Prop_SDP := Cov_ter / Phylo_sum]
 phylo_all_dt[is.na(Prop_SDP), Prop_SDP:=0]
 phylo_all_dt[ , Norm_abun_SDP := setkey(phylo_all_dt, Sample)[ CT_ratio_dt, Prop * copiesperngDNA]]
-pdf(paste0(figpath, "phylorelabundstackbarplot.pdf"), onefile=TRUE, width=12)
+
 ggplot(data=phylo_all_dt,
        aes(x=factor(Sample,levels=sample_order),
            y=Prop,
@@ -299,7 +374,7 @@ ggplot(data=phylo_all_dt,
         legend.title=element_blank(),
         text=element_text(size=22),
         plot.title=element_text(hjust=0.5))
-dev.off()
+ggsave("figures/Fig1B-phylorelabundstackbarplot.pdf", width = 10, height = 12)
 
 #Normalized absolute abundance
 phylo_absabun_dt <- as.data.table(aggregate(data=phylo_all_dt, Norm_abun_SDP ~ Sample + Phylo, sum))
@@ -315,6 +390,7 @@ for (i in phylo_list) {
   stats_phylo_absabun[ Phylo==i, p:=temp_test$p.value]
 }
 stats_phylo_absabun[, q:=qvalue(stats_phylo_absabun$p)$qvalues]
+
 phylo_absabun_bplots <- list()
 for (i in phylo_list) {
   phylo_absabun_bplots[[i]] <- ggplot(phylo_absabun_dt[ Phylo==i, ],
@@ -338,7 +414,7 @@ for (i in phylo_list) {
           plot.title=element_text(hjust=0.5), 
           plot.subtitle=element_text(hjust=0.5))
 }
-pdf(paste0(figpath, "phylorabsabundboxplot.pdf"), onefile=TRUE, width=12)
+pdf(paste0("figures/SuppFig4-phylorabsabundboxplot.pdf"), onefile=TRUE, width=12)
 marrangeGrob(phylo_absabun_bplots, nrow = 1, ncol = 1)
 dev.off()
 
@@ -371,13 +447,16 @@ for (i in phylo_list) {
           text=element_text(size=22),
           plot.title=element_text(hjust=0.5))
 }
-pdf(paste0(figpath, "sdprelabunstackbarplot.pdf"), onefile=TRUE, width = 12)
+pdf(paste0("figures/SuppFig3-pre-sdprelabunstackbarplot.pdf"), onefile=TRUE, width = 12)
 marrangeGrob(sdp_relabun_barplot, nrow = 1, ncol = 1)
 dev.off()
+
+
 stats_SDP_absabun <- merge.data.table(stats_SDP_absabun,
                                       phylo_all_dt[Sample=="F01", c("SDP","Phylo")], 
                                       by="SDP", all.x=TRUE )
-pdf(paste0(figpath, "sdpabsabunboxplot.pdf"), onefile=TRUE, width = 12)
+
+pdf(paste0("figures/SuppFig4-pre-sdpabsabunboxplot.pdf"), onefile=TRUE, width = 25)
 ggplot(phylo_all_dt[!(SDP %in% c("api_apis_dorsa", "api_bombus", "bifido_1_cerana", 
                                  "bifido_bombus","bom_1", "bom_apis_melli","bom_bombus",
                                  "com_drosophila", "com_monarch", "firm5_bombus",
@@ -411,7 +490,7 @@ sdp_fc_dt_bis <- sdp_fc_dt_bis[ !(SDP %in% c("api_apis_dorsa", "api_bombus", "bi
                             "gilli_4", "gilli_5", "gilli_6", "gilli_apis_andre",
                             "gilli_apis_dorsa", "gilli_bombus", "snod_bombus")),]
 
-pdf(paste0(figpath, "fc_sdp_plot.pdf"), onefile=TRUE, width=15)
+pdf(paste0("figures/Fig1E-fc_sdp_plot.pdf"), onefile=TRUE, width=15)
 ggplot(sdp_fc_dt_bis[!(SDP %in% c("api_1", "bom_1", "firm5_7", "snod_2") ),], 
        aes(x = SDP, 
            y = logtwoFC))+
@@ -434,6 +513,8 @@ ggplot(sdp_fc_dt_bis[!(SDP %in% c("api_1", "bom_1", "firm5_7", "snod_2") ),],
         plot.title=element_text(hjust=0.5), 
         plot.subtitle=element_text(hjust=0.5))
 dev.off()
+
+########### resume here ###########
 
 ### NMDS plots for the relative and absolute compositions of samples, based on phylotypes and based on SDPs, using Bray-Curtis dissimilarity indices.
 
