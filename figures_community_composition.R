@@ -58,7 +58,7 @@ adonis_OmegaSq <- function(adonisOutput, partial = TRUE){
     return(adonisOutput)
 }
 
-source("utilites.R")
+source("utilities.R")
 
 sample_order <- c('N01','N02','N03','N04','N06','N07','N08','N09','N10','N11','N12','N13','N14','N15','N16',
                   'F01','F02','F03','F04','F06','F07','F08','F09','F10','F11','F12','F13','F14','F15','F16')
@@ -514,11 +514,37 @@ ggplot(sdp_fc_dt_bis[!(SDP %in% c("api_1", "bom_1", "firm5_7", "snod_2") ),],
         plot.subtitle=element_text(hjust=0.5))
 dev.off()
 
-########### resume here ###########
-
 ### NMDS plots for the relative and absolute compositions of samples, based on phylotypes and based on SDPs, using Bray-Curtis dissimilarity indices.
 
 nmds_plot <- function(data_dt, plot_title, info_df){
+  set.seed(123)
+  nmds = metaMDS(data_dt, distance = "bray", trymax = 100000)
+  nmds_scores = as.data.table(scores(nmds)$sites)
+  nmds_scores[, Sample := info_df$Sample]
+  nmds_scores[Sample %like% "N[0-9][0-9]", Host := "Nurses" ]
+  nmds_scores[Sample %like% "F[0-9][0-9]", Host := "Foragers" ]
+  nmds_scores[Sample %like% "N[0-9][0-9]", Host := "Nurses" ]
+  nmds_scores[Sample %like% "F[0-9][0-9]", Host := "Foragers" ]
+  nmds_plot <- ggplot(nmds_scores, aes(x=NMDS1, y=NMDS2, 
+                                     color=factor(Host,levels=treatments),
+                                     shape=factor(Host)))+
+    geom_point(stat="identity",size=6, alpha = 0.75)+
+    scale_color_manual(values=treat_colors)+
+    scale_shape_manual(values=c("Foragers" = 17, "Nurses" = 19))+
+    labs(x="NMDS1",
+         y="NMDS2",
+         title=plot_title,
+         subtitle=paste0("Stress = ",nmds$stress),
+         shape="Host",
+         color="Location")+
+    theme(plot.title = element_text(hjust = 0.5),
+          text=element_text(size=22),
+          plot.subtitle = element_text(hjust = 0.5)) +
+          make_theme(setCol = F)
+  return(nmds_plot)
+}
+
+nmds_plot_loc <- function(data_dt, plot_title, info_df){
   set.seed(123)
   nmds = metaMDS(data_dt, distance = "bray", trymax = 100000)
   nmds_scores = as.data.table(scores(nmds)$sites)
@@ -537,17 +563,12 @@ nmds_plot <- function(data_dt, plot_title, info_df){
   nmds_plot <- ggplot(nmds_scores, aes(x=NMDS1, y=NMDS2, 
                                      shape=factor(Host,levels=treatments),
                                      color=factor(Location)))+
-                                    #  color=factor(Host,levels=treatments),
-                                    #  shape=factor(Location)))+
     geom_point(stat="identity",size=6, alpha = 0.75)+
     scale_color_manual(values=c("UNIL"="#CC79A7",
                                   "Cugy"="#0072B2",
                                   "Yens"="#009E73",
                                   "Liebefeld"="#E69F00",
                                   "Vesancy"="#999999"))+
-    # new_scale_color()+
-    # stat_ellipse(aes(group=Host,color=Host), size = 2)+
-    # scale_color_manual(values=treat_colors)+
     scale_shape_manual(values=c("Foragers" = 17, "Nurses" = 19))+
     labs(x="NMDS1",
          y="NMDS2",
@@ -575,13 +596,14 @@ phylo_dt_umlt_prop[Sample %like% "[N F]10", Location := "Yens" ]
 phylo_dt_umlt_prop[Sample %like% "[N F]1[1-3]", Location := "Cugy" ]
 phylo_dt_umlt_prop[Sample %like% "[N F]1[4-6]", Location := "Vesancy" ]
 phylo_dt_umlt_prop[, Hive:=gsub("[FN]","", Sample)]
+phylo_prop_nmdsplot_loc <- nmds_plot_loc(phylo_prop_mat, "Phylotype proportions-based NMDS plot", phylo_dt_umlt_prop)
 phylo_prop_nmdsplot <- nmds_plot(phylo_prop_mat, "Phylotype proportions-based NMDS plot", phylo_dt_umlt_prop)
-ggsave("04_RebuttalAnalyses/Results/phylo_prop_nmdsplot.pdf", width = 10, height = 12)
+ggsave("figures/Fig1C-phylo_prop_nmdsplot.pdf", width = 10, height = 12)
 # save figure phylo_prop_nmdsplot
 adonis2_test_phylo <- adonis2(formula = phylo_prop_mat ~ Host + Location, data = phylo_dt_umlt_prop, permutations = 999, by = "margin")
 adonis_test_phylo <- adonis_OmegaSq(adonis2_test_phylo)
 df_adonis_phylo = as.data.frame(adonis_test_phylo)
-write.csv(df_adonis_phylo, "04_RebuttalAnalyses/Results/adonis_result_at_Phylo_level.csv", quote = F)
+write.csv(df_adonis_phylo, "figures/adonis_result_at_Phylo_level.csv", quote = F)
 
 #Using SDP proportions
 sdp_dt_umlt_prop <- dcast.data.table(phylo_all_dt, Sample ~ SDP, value.var = "Prop")
@@ -595,12 +617,11 @@ sdp_dt_umlt_prop[Sample %like% "[N F]0[8-9]", Location := "Yens" ]
 sdp_dt_umlt_prop[Sample %like% "[N F]10", Location := "Yens" ]
 sdp_dt_umlt_prop[Sample %like% "[N F]1[1-3]", Location := "Cugy" ]
 sdp_dt_umlt_prop[Sample %like% "[N F]1[4-6]", Location := "Vesancy" ]
+sdp_prop_nmdsplot_loc <- nmds_plot_loc(sdp_prop_mat, "SDP proportions-based NMDS plot", sdp_dt_umlt_prop)
 sdp_prop_nmdsplot <- nmds_plot(sdp_prop_mat, "SDP proportions-based NMDS plot", sdp_dt_umlt_prop)
-ggsave("04_RebuttalAnalyses/Results/sdp_prop_nmdsplot.pdf", width = 10, height = 12)
+ggsave("figures/Fig1D-sdp_prop_nmdsplot.pdf", width = 10, height = 12)
 adonis_OmegaSq(adonis2(formula = sdp_prop_mat ~ Location + Host, data = sdp_dt_umlt_prop, permutations = 999))
-write.csv((as.data.frame(adonis_OmegaSq(adonis2(formula = sdp_prop_mat ~ Location + Host, data = phylo_dt_umlt_prop, permutations = 999, by = "margin")))), "04_RebuttalAnalyses/Results/adonis_result_at_SDP_level.csv", quote = F)
-
-
+write.csv((as.data.frame(adonis_OmegaSq(adonis2(formula = sdp_prop_mat ~ Location + Host, data = phylo_dt_umlt_prop, permutations = 999, by = "margin")))), "figures/adonis_result_at_SDP_level.csv", quote = F)
 
 
 df_plot_div_firm5 <- cbind(sdp_dt_umlt_prop[,c("firm5_1", "firm5_2", "firm5_3", "firm5_4", "firm5_7", "Host", "Location", "Sample")], "Shannon" = diversity(sdp_prop_mat[,c("firm5_1", "firm5_2", "firm5_3", "firm5_4", "firm5_7")], index = "shannon"))
@@ -625,7 +646,7 @@ ggplot(data = df_plot_div_firm5,
         plot.title=element_text(hjust=0.5), 
         plot.subtitle=element_text(hjust=0.5))
         # stat_compare_means()
-        ggsave("04_RebuttalAnalyses/Results/Shannon_diversity_firm5.pdf", width = 10, height = 12)
+        ggsave("figures/SuppFig3-preShannon_diversity_firm5.pdf", width = 10, height = 12)
 
 ggplot(data = df_plot_div_firm4, 
                aes(x = Host, y = Shannon, fill = Host)) +
@@ -643,7 +664,7 @@ ggplot(data = df_plot_div_firm4,
         plot.title=element_text(hjust=0.5), 
         plot.subtitle=element_text(hjust=0.5))
         # stat_compare_means()
-        ggsave("04_RebuttalAnalyses/Results/Shannon_diversity_firm4.pdf", width = 10, height = 12)
+        ggsave("figures/SuppFig3-preShannon_diversity_firm4.pdf", width = 10, height = 12)
 
 ggplot(data = df_plot_div_gilli, 
                aes(x = Host, y = Shannon, fill = Host)) +
@@ -661,7 +682,7 @@ ggplot(data = df_plot_div_gilli,
         plot.title=element_text(hjust=0.5), 
         plot.subtitle=element_text(hjust=0.5))
         # stat_compare_means()
-        ggsave("04_RebuttalAnalyses/Results/Shannon_diversity_gilli.pdf", width = 10, height = 12)
+        ggsave("figures/SuppFig3-preShannon_diversity_gilli.pdf", width = 10, height = 12)
 
 ggplot(data = df_plot_div_bifido, 
                aes(x = Host, y = Shannon, fill = Host)) +
@@ -679,4 +700,7 @@ ggplot(data = df_plot_div_bifido,
         plot.title=element_text(hjust=0.5), 
         plot.subtitle=element_text(hjust=0.5))
         # stat_compare_means()
-        ggsave("04_RebuttalAnalyses/Results/Shannon_diversity_bifido.pdf", width = 10, height = 12)
+        ggsave("figures/SuppFig3-pre-Shannon_diversity_bifido.pdf", width = 10, height = 12)
+
+# add unmapped reads stuff here
+########### resume here ###########
