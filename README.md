@@ -1,5 +1,4 @@
-Scripts for the "Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers" manuscript.
-=======
+Scripts for the "Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers" manuscript
 
 # Pre-requisites
 
@@ -18,7 +17,7 @@ In terms of software, the scripts require:
 * [Trimmomatic](https://github.com/usadellab/Trimmomatic) (trimming of the reads and removal of the sequencing adapters) (version 0.35, should be added to the path)
 * [prodigal](https://github.com/hyattpd/Prodigal) (detection of ORFs) (version 2.6.3, should be added to the path)
 * [eggnog](https://github.com/eggnogdb/eggnog-mapper) (annotation of the gene and ORF catalogue) (version 1.0.3-33-g70ff1ab, should be added to the path)
-* (optional) [OrthoFinder](https://github.com/davidemms/OrthoFinder) (creation of orthologous groups of gene and orf catalogue) (version 2.3.5, should be added to the path) - results of this step are packaged with the beebiome database
+* [OrthoFinder](https://github.com/davidemms/OrthoFinder) (creation of orthologous groups of gene and orf catalogue) (version 2.3.5, should be added to the path)database
 
 A list of packages from the conda environments used for plotting and downstream analysis can be found in `envs/python_env.yml` and `envs/r_env.yml` and the files be used to create those environments.
 
@@ -65,7 +64,7 @@ The script `./01_community_composition_analysis.sh` will:
 
 1. map the filtered reads against the core genes of the beebiome bacterial database
    * It creates (after deleting any pre-existing directory of the same name) `mapping_full_db`
-   * For each sample, it maps the reads to the beebiome_db and filters the resulting sam file using the script `filter_sam_aln_length.pl` to remove alignments with less than 50 matches. It also removes chimeric alignments and filters by edit distance < 5 and the deleted all the intermediate files.
+   * For each sample, it maps the reads to the beebiome_db and filters the resulting sam file using the script `filter_sam_aln_length.pl` to remove alignments with less than 50 matches. It also removes chimeric alignments and filters by edit distance \< 5 and the deleted all the intermediate files.
    * It extracted the reads that were unmapped and mapped with fewer than 50 matches and saves them as `mapping_full_db/${sample_tag}_vs_db_unmapped_R${1_or_2}.fastq`.
 2. use the mapping data to infer terminus coverage of each of the bacterial speciess
    * It creates (after deleting any pre-existing directory of the same name) `community_composition`
@@ -78,17 +77,23 @@ NOTE: this script is not optimized to run more easily. You can easily make it fa
 
 ## Strain-level analysis
 
-Same here.  
+The script `./02_strain-level_analysis.sh` runs the first part of the analysis of strain-level variation.
 
-```./02_strain-level_analysis.sh```
+
 
 ## Functional gene content analysis
 
-And here too.  
+The script `./03_functional_gene_content.sh` will:
 
-```./03_functional_gene_content.sh```
+1. combine reads unmapped to the host database with reads that were mapped to the beebiome_db and assemble them using [SPAdes](https://github.com/ablab/spades) with the meta option specified.
+2. predict ORFs on the assembled contigs using [prodigal](https://github.com/hyattpd/Prodigal) and keep only ORFs that are at least 300 bp in length and marked as having a normal start and stop codon using the script `filt_ffn.pl`.
+3. concatenates all the genes from genomes in the beebiome_db database and does a blast search of each gene predicted from the assemblies against it to assign each contig to a species if at least 80% of the ORFs on it were matched against genes of that species and at least 10% of the ORFs were matched against genes of that species and no other species and the results summarised in `functional_gene_content/all_filt_ORFs_list_assigned.txt`.
+4. computes OGs using amino acid sequences of the ORFs and genes from genomes of the database with [OrthoFinder](https://github.com/davidemms/OrthoFinder)
+5. maps reads against a catalog of nucleotide sequences of filtered orfs collected from across all samples and genes of genomes from the beebiome_db database and and calculates the coverage of each orf in each sample using [samtools](http://www.htslib.org) `coverage`
+6. The catalog is annotated using [eggnog](https://github.com/eggnogdb/eggnog-mapper).
+7. The rest of the analysis is carried out in the script `figures_functional_gene_content.R` which is run by the shell script as the last step and also makes the figures.
 
-
+## Other analyses
 
 
 --------
