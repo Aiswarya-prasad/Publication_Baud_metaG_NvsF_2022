@@ -114,7 +114,7 @@ class GenomePosition:
     def is_polymorphic(self, sample, cutoff=0.1, assymetric=False, consider_counts=True):
         '''
         if there is no cutoff, consider a position polymorphic if 
-        there are at least 2 alleles present and if there is a cutoff,
+        there are at least 2 alleles present and if there is a cutoff (i.e. cutoff is not 0),
         consider a position polymorphic if there are at least 2 alleles
         and both have a frequency greater than the cutoff
         This is not the same as the is_polymorphic subroutin in filter_snvs.pl
@@ -129,12 +129,6 @@ class GenomePosition:
             print(f'Allele freqs do not add up to 1 for {self.position} in {sample}')
             print(f'Allele freqs: {self.freq[sample]}')
             print(f'Allele counts: {self.freq[sample]}')
-        # now that we know stuff adds up to 1, we want to know that there is
-            # polymorphism at this position
-            # regardless of how many alleles there are, at least one allele
-            # should have a freq >= cutoff and there should be more than 1 allele
-            # with a non-zero freq - this is not explicitly checked because if freq
-            # is 0, it is not added to the position object
         if assymetric:
             if len(self.alleles[sample]) > 1:
                 # if there is more than 1 allele and there is no cutoff, return True
@@ -153,7 +147,6 @@ class GenomePosition:
                     else:
                         return False
             else:
-                # print('not counting as polymorphic')
                 return False
         else:
             if len(self.alleles[sample]) > 1:
@@ -283,7 +276,7 @@ def populate_position_objects(vcf_file, all_samples, missing_fraction_cutoff=0.1
                         position_objs[position].add_sample_info(sample, line[i].split(':')[1], depth_diff, alt_allele, line[i].split(':')[5], missing_fraction)
         return position_objs
 
-core_lengths_df = pd.read_csv('04_RebuttalAnalyses/05_CoreGenomeLengthsInfo/core_lengths_final_red.txt', sep='\t', header=0)
+core_lengths_df = pd.read_csv('core_genome_lengths_summary/core_lengths_final.txt', sep='\t', header=0)
 
 sdp_list = ["bapis","bifido_1.1","bifido_1.2","bifido_1.3","bifido_1.4",
                          "bifido_1.5","bifido_2","firm4_1","firm4_2","firm5_1",
@@ -416,35 +409,7 @@ for sdp in sdp_list:
                    marker='+', color='black', s=100, zorder=1)
     plt.savefig(f'{snvs_analysis_directory}/figures/{sdp}_var_sites_vs_cutoff.png', dpi=300)
 
-# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
-#     distance = 1
-#     shared = 0
-#     total = 0
-#     for loc in positions:
-#         if any([positions[loc].is_polymorphic(sam, cutoff=cutoff_detect) for sam in all_samples if sam in positions[loc].samples]):
-#             if sample1 in positions[loc].samples or sample2 in positions[loc].samples:
-#             # if an allele is present in at least 1 sample, consider it for the total
-#                 total += 1
-#                 alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
-#                 alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
-#                 alleles_1.discard('.')
-#                 alleles_2.discard('.')
-#                 # if either sample contains an allele that is not present in the other
-#                 # consider it not shared
-#                 if len(alleles_1) > 0 and len(alleles_2) > 0:
-#                     if len(alleles_1.difference(alleles_2)) == 0 or len(alleles_2.difference(alleles_1)) == 0:
-#                         shared += 1
-#     if total > 0:
-#         distance = 1 - shared / total
-#         if shared == 0:
-#             print(f'setting 0 for {sample1} and {sample2} cut off at {cutoff_detect} because shared is 0!!!!!!!')
-#     else:
-#         distance = 0
-#         # print(f'setting 0 for {sample1} and {sample2} cut off at {cutoff_detect} because total is 0')
-#     return (shared, total)
-
 def calc_shared_dominant(positions, sample1, sample2, cutoff_detect):
-    distance = 1
     shared = 0
     total = 0
     for loc in positions:
@@ -458,149 +423,35 @@ def calc_shared_dominant(positions, sample1, sample2, cutoff_detect):
                     shared += 1
                 else:
                     print(f'for {loc} in {sample1} and {sample2}, dominant allele is {dom_alleles_1} and {dom_alleles_2} but alleles detected are {set(positions[loc].alleles_detected(sample1, cutoff=0.1))} and {set(positions[loc].alleles_detected(sample2, cutoff=0.1))}')
-            # dom_allele_1 = positions[loc].get_dominant_allele(sample1)
-            # dom_allele_2 = positions[loc].get_dominant_allele(sample2)
-            # if dom_allele_1 == dom_allele_2:
-            #     if dom_allele_1 in set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect)) and dom_allele_2 in set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect)):
-            #         shared += 1
-            #     else:
-            #         print(f'for {loc} in {sample1} and {sample2}, dominant allele is {dom_allele_1} and {dom_allele_2} but alleles detected are {set(positions[loc].alleles_detected(sample1, cutoff=0.1))} and {set(positions[loc].alleles_detected(sample2, cutoff=0.1))}')
-    if total > 0:
-        distance = 1 - shared / total
-        if shared == 0:
-            print(f'setting 0 for {sample1} and {sample2} cut off at {cutoff_detect} because shared is 0!!!!!!!')
-    else:
-        distance = 0
-        # print(f'setting 0 for {sample1} and {sample2} cut off at {cutoff} because total')
     return (shared, total)
-
-# # /home/aiswarya/mnt/nas_recherche/general_data/D2c/gbaud/20190625_gbaud_beemetagenomics/{snvs_analysis_directory}/bapis_shared_fraction_filt_01.txt
-# # were generated using the following function
-
-# WE USE THIS FOR THE PUBLICATION
-
-# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
-#     shared = 0
-#     total = 0
-#     for loc in positions:
-#         if sample1 in positions[loc].samples and sample2 in positions[loc].samples:
-#             # for outputs labelled _corrected this condition is and
-#             # before, it was or (for the various cutoffs)
-#             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) or positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
-#                 total += 1
-#                 alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
-#                 alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
-#                 alleles_1.discard('.')
-#                 alleles_2.discard('.')
-#                 # for outputs labelled _corrected this condition is >= 1
-#                 # before, it was > 1
-#                 to_print_1 = [f'{x}:{positions[loc].freq_allele(sample1, x)}' for x in alleles_1]
-#                 to_print_2 = [f'{x}:{positions[loc].freq_allele(sample2, x)}' for x in alleles_2]
-#                 print(f'{loc}\t{sample1}\t{sample2}\t{to_print_1}\t{to_print_2}')
-#                 if len(alleles_1.intersection(alleles_2)) > 1:
-#                     shared += 1
-
-# # for _corrected we use:
-
-# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
-#     shared = 0
-#     total = 0
-#     for loc in positions:
-#         if sample1 in positions[loc].samples and sample2 in positions[loc].samples:
-#             # for outputs labelled _corrected this condition is and
-#             # before, it was or (for the various cutoffs)
-#             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) or positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
-#                 total += 1
-#                 alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
-#                 alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
-#                 alleles_1.discard('.')
-#                 alleles_2.discard('.')
-#                 # for outputs labelled _corrected this condition is >= 1
-#                 # before, it was > 1
-#                 to_print_1 = [f'{x}:{positions[loc].freq_allele(sample1, x)}' for x in alleles_1]
-#                 to_print_2 = [f'{x}:{positions[loc].freq_allele(sample2, x)}' for x in alleles_2]
-#                 print(f'{loc}\t{sample1}\t{sample2}\t{to_print_1}\t{to_print_2}')
-#                 if len(alleles_1.intersection(alleles_2)) >= 1:
-#                     shared += 1
-#    return (shared, total)
-
-# # for _final we use:
-
-# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
-#     shared = 0
-#     total = 0
-#     for loc in positions:
-#         if any([positions[loc].is_polymorphic(sam, cutoff=cutoff_detect) for sam in all_samples if sam in positions[loc].samples]):
-#             total += 1
-#             # if position is present in both sample, it can be compared
-#             # if is not poly in at least 1 sample, consider it for counting
-#             alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
-#             alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
-#             alleles_1.discard('.')
-#             alleles_2.discard('.')
-#             # avoid cases where there is a missing allele in either sample
-#             # nothing left after discarding missing alleles
-#             if len(alleles_1) == 0 or len(alleles_2) == 0:
-#                 continue
-#             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) and positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
-#                 shared += 1
-#     return (shared, total)
-
-
-# for final_all we use:
 
 def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
     shared = 0
     total = 0
     for loc in positions:
         if sample1 in positions[loc].samples and sample2 in positions[loc].samples:
-            # if position is present in both sample, it can be compared
-            # if is not poly in at least 1 sample, consider it for counting
-            alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
-            alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
-            alleles_1.discard('.')
-            alleles_2.discard('.')
-            # avoid cases where there is a missing allele in either sample
-            # nothing left after discarding missing alleles
-            if len(alleles_1) == 0 or len(alleles_2) == 0:
-                continue
             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) or positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
                 total += 1
-                if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) and positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
+                alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
+                alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
+                alleles_1.discard('.')
+                alleles_2.discard('.')
+                # for outputs labelled _corrected this condition is >= 1
+                # before, it was > 1
+                to_print_1 = [f'{x}:{positions[loc].freq_allele(sample1, x)}' for x in alleles_1]
+                to_print_2 = [f'{x}:{positions[loc].freq_allele(sample2, x)}' for x in alleles_2]
+                print(f'{loc}\t{sample1}\t{sample2}\t{to_print_1}\t{to_print_2}')
+                if len(alleles_1.intersection(alleles_2)) > 1:
                     shared += 1
-                '''
-                It has never happened that there is only 1 shared allele
-                because if both the sites are polymorphic, they are always
-                polymorphic for at least 2 alleles if this is not true
-                that line will be printed.
-                '''
-                if alleles_1.intersection(alleles_2) == 1:
-                    print(f'loc: {loc}, sample1: {sample1}, sample2: {sample2}, alleles_1: {[f"{al}:{positions[loc].freq_allele(sample1, al)}" for al in alleles_1]}, alleles_2: {[f"{al}:{positions[loc].freq_allele(sample2, al)}" for al in alleles_2]}, shared: {alleles_1.intersection(alleles_2)}')
-    return (shared, total)
 
-# Now that we have the distance matrices, we can plot the cumulative curves
-# for each sdp and separate by host
-'''
-reworking distance matrix calc. Instead of computing distance matrix, make a list like
-KEs file ...shared_fraction.txt
-each line has 
-Sample1	Sample2	Nb_shared_alleles	Nb_scored_alleles	Shared_fraction
+def coverage_in_sample(sample, sdp, limit = 20):
+    with open(f'snvs/{sdp}_corecov_coord.txt', 'r') as cov_fh:
+        for line in cov_fh:
+            line = line.strip().split('\t')
+            if line[1] == sample:
+                if float(line[2]) >= limit:
+                    return True
 
-then use snvs/distance_matrix.R to write the matrices
-
-run the following for each sdp
-cd snvs
-Rscript distance_matrix.R ${sdp}_shared_fraction_filt_0.txt ${sdp}_dist_matrix_filt_0.txt
-Rscript distance_matrix.R ${sdp}_shared_fraction_filt_01.txt ${sdp}_dist_matrix_filt_01.txt
-Rscript distance_matrix.R ${sdp}_shared_fraction_filt_05.txt ${sdp}_dist_matrix_filt_05.txt
-Rscript distance_matrix.R ${sdp}_shared_fraction_filt_1.txt ${sdp}_dist_matrix_filt_1.txt
-
-Rscript distance_matrix.R ${sdp}_shared_fraction_dom_0.txt ${sdp}_dist_matrix_dom_0.txt
-# cutoff makes not much sense for dominant alleles
-'''
-
-# for sdp in ["bapis","bifido_1.1","bifido_1.2","bifido_1.3","bifido_1.4","bifido_1.5","bifido_2","firm4_1","firm4_2"]:
-# for sdp in ["firm5_1", "firm5_2","firm5_3","firm5_4","fper_1","gilli_1", "gilli_2","snod_1"]:
 for sdp in sdp_list:
     print('Working on', sdp)
     if os.path.exists(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl'):
@@ -609,17 +460,15 @@ for sdp in sdp_list:
     # for each sample pair, calculate the distance
     # and write to a file
     # for each cutoff
-    for cutoff, name in zip([0.1], ['1']):
-    # for cutoff, name in zip([0.01, 0, 0.05, 0.1], ['01', '0', '05', '1']):
+    for cutoff, name in zip([0.01, 0, 0.05, 0.1], ['01', '0', '05', '1']):
         print('Working on cutoff', cutoff)
-        if True:
-        # with open(f'{snvs_analysis_directory}/{sdp}_shared_fraction_filt_{name}_corrected.txt', 'w') as fh_out:
-            # fh_out.write('Sample1\tSample2\tNb_shared_alleles\tNb_scored_alleles\tShared_fraction\n')
+        with open(f'{snvs_analysis_directory}/{sdp}_shared_fraction_filt_{name}_corrected.txt', 'w') as fh_out:
+            fh_out.write('Sample1\tSample2\tNb_shared_alleles\tNb_scored_alleles\tShared_fraction\n')
             for sample1, sample2 in sample_pairs:
                 shared, total = calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect = cutoff)
                 if shared > 0 and total > 0:
                     shared_fraction = shared / total
-                    # fh_out.write(f'{sample1}\t{sample2}\t{shared}\t{total}\t{shared_fraction}\n')
+                    fh_out.write(f'{sample1}\t{sample2}\t{shared}\t{total}\t{shared_fraction}\n')
         if cutoff == 0:
             print('Working on dom')
             with open(f'{snvs_analysis_directory}/{sdp}_shared_fraction_dom_{name}.txt', 'w') as fh_out:
@@ -630,37 +479,58 @@ for sdp in sdp_list:
                         shared_fraction = shared / total
                         fh_out.write(f'{sample1}\t{sample2}\t{shared}\t{total}\t{shared_fraction}\n')
  
-# how often does it happen that the sites are not polymorphic but they do not contain the same
-# allele between two samples?
-
-# for sdp in sdp_list:
-#     if os.path.exists(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl'):
-#         positions = pickle.load(open(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl', 'rb'))
-#     sample_pairs = list(combinations(all_samples, 2))
-#     cutoff = 0.01
-#     name = '01'
-    
-# for every position, if the allele is present in at least 1 sample in a pair
-# consider it for the total
-# if it is present in both samples, consider it for the shared
-# if it is present in only 1 sample, do not consider it for the shared
-# if it is present in neither sample, do not consider it for the total
+core_lengths_df = pd.read_csv('core_genome_lengths_summary/core_lengths_final.txt', sep='\t', header=0)
+n_samples = [x for x in all_samples if x[0] == 'N']
+f_samples = [x for x in all_samples if x[0] == 'F']
+nb_curves = 10
+for sdp in sdp_list:
+    print('Working on', sdp)
+    if os.path.exists(f'04_RebuttalAnalyses/06_SummarizeAndFilterSNPs/{sdp}_positions_dict.pkl'):
+        positions = pickle.load(open(f'04_RebuttalAnalyses/06_SummarizeAndFilterSNPs/{sdp}_positions_dict.pkl', 'rb'))
+    # get the core length for the sdp
+    print('Getting core length')
+    core_length = core_lengths_df[core_lengths_df['Strain_id'] == sdp]['Tot_length(bp)'].values[0]
+    df_cum_curve = pd.DataFrame(columns=['host', 'curve_id', 'nb_samples', 'fraction_variable', 'sdp', 'filt_type'])
+    for cutoff in ['0', '0.01', '0.05', '0.1']:
+        print('Working on cutoff', cutoff)
+        for host in ['N', 'F']:
+            print('Working on host', host)
+            if host == 'N':
+                samples = [x for x in n_samples if coverage_in_sample(x, sdp)]
+                # only consider samples that have at least 20x coverage of that SDP
+            else:
+                samples = [x for x in f_samples if coverage_in_sample(x, sdp)]
+                # only consider samples that have at least 20x coverage of that SDP
+            for curve_id in range(nb_curves):
+                print('Working on curve', curve_id)
+                for nb_samples in range(1, len(samples)):
+                    print('Working on nb_samples', nb_samples)
+                    # get a random sample of nb_samples from samples
+                    samples_subset = random.sample(samples, nb_samples)
+                    # get the positions that are polymorphic in at least one of the samples
+                    locs_var = set()
+                    for sample in samples_subset:
+                        for loc in positions:
+                            if sample in positions[loc].samples:
+                                if positions[loc].is_polymorphic(sample, cutoff=float(cutoff)):
+                                    if loc not in locs_var:
+                                        locs_var.add(loc)
+                    # get the fraction of the core genome that is variable
+                    fraction_variable = round(len(locs_var) / core_length * 100, 2)
+                    df_cum_curve.to_csv(f'{snvs_analysis_directory}/{sdp}_cum_curve_filt_{cutoff}.txt', sep='\t', index=False)
 
 for sdp in sdp_list:
     print('Working on', sdp)
     if os.path.exists(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl'):
         positions = pickle.load(open(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl', 'rb'))
-    # sample_pairs = list(combinations(all_samples, 2))
-    # sample_pairs = [x for x in sample_pairs if coverage_in_sample(x[0], sdp) and coverage_in_sample(x[1], sdp)]
+    sample_pairs = list(combinations(all_samples, 2))
+    sample_pairs = [x for x in sample_pairs if coverage_in_sample(x[0], sdp) and coverage_in_sample(x[1], sdp)]
     # for each sample pair, calculate the distance
-    # and write to a file
-    # for each cutoff
-    for cutoff, name in zip([0.01], ['01']):
-    # for cutoff, name in zip([0.01, 0, 0.05, 0.1], ['01', '0', '05', '1']):
+    # and write to a file for each cutoff
+    for cutoff, name in zip([0.01, 0, 0.05, 0.1], ['01', '0', '05', '1']):
         print('Working on cutoff', cutoff)
-        if True:
-        # with open(f'{snvs_analysis_directory}/{sdp}_shared_fraction_filt_{name}_corrected.txt', 'w') as fh_out:
-            # fh_out.write('Sample1\tSample2\tNb_shared_alleles\tNb_scored_alleles\tShared_fraction\n')
+        with open(f'{snvs_analysis_directory}/{sdp}_shared_fraction_filt_{name}_corrected.txt', 'w') as fh_out:
+            fh_out.write('Sample1\tSample2\tNb_shared_alleles\tNb_scored_alleles\tShared_fraction\n')
             for sample1, sample2 in sample_pairs:
                 inter_geq1 = 0
                 inter_g1 = 0
@@ -690,72 +560,6 @@ for sdp in sdp_list:
                 print(f'{sample1}\t{sample2}\t{poly_both_int0:,}: poly_both_int0')
                 print(f'{sample1}\t{sample2}\t{inter_g1:,}: inter_g1')
 
-                                # print(f'loc: {loc}, sample1: {sample1}, sample2: {sample2}, alleles_1: {[f"{al}:{positions[loc].freq_allele(sample1, al)}" for al in alleles_1]}, alleles_2: {[f"{al}:{positions[loc].freq_allele(sample2, al)}" for al in alleles_2]}, shared: {alleles_1.intersection(alleles_2)}')
-
-# make fig 2b data for cumulative curves
-'''
-Per host, for each sample size, track the positions that are detected as polymorphic
-and get the fraction that they make of the total core genome length
-Then do this for increasing sample sizes using a random subset of samples
-from 1 to 15 and for as many curves as needed
-In the output have columns for
-host curve_id nb_samples fraction_variable sdp
-for each cutoff
-'''
-
-def coverage_in_sample(sample, sdp, limit = 20):
-    with open(f'snvs/{sdp}_corecov_coord.txt', 'r') as cov_fh:
-        for line in cov_fh:
-            line = line.strip().split('\t')
-            if line[1] == sample:
-                if float(line[2]) >= limit:
-                    return True
-
-# read core lengths
-core_lengths_df = pd.read_csv('04_RebuttalAnalyses/05_CoreGenomeLengthsInfo/core_lengths_final.txt', sep='\t', header=0)
-n_samples = [x for x in all_samples if x[0] == 'N']
-f_samples = [x for x in all_samples if x[0] == 'F']
-nb_curves = 10
-for sdp in sdp_list:
-    print('Working on', sdp)
-    if os.path.exists(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl'):
-        positions = pickle.load(open(f'{snvs_analysis_directory}/{sdp}_positions_dict.pkl', 'rb'))
-    # get the core length for the sdp
-    print('Getting core length')
-    core_length = core_lengths_df[core_lengths_df['Strain_id'] == sdp]['Tot_length(bp)'].values[0]
-    df_cum_curve = pd.DataFrame(columns=['host', 'curve_id', 'nb_samples', 'fraction_variable', 'sdp', 'filt_type'])
-    for host in ['N', 'F']:
-        print('Working on host', host)
-        if host == 'N':
-            samples = [x for x in n_samples if coverage_in_sample(x, sdp)]
-            # only consider samples that have at least 20x coverage of that SDP
-        else:
-            samples = [x for x in f_samples if coverage_in_sample(x, sdp)]
-            # only consider samples that have at least 20x coverage of that SDP
-        for cutoff in ['0', '0.01', '0.05', '0.1']:
-            print('Working on cutoff', cutoff)
-            for curve_id in range(nb_curves):
-                print('Working on curve', curve_id)
-                for nb_samples in range(1, len(samples)):
-                    print('Working on nb_samples', nb_samples)
-                    # get a random sample of nb_samples from samples
-                    samples_subset = random.sample(samples, nb_samples)
-                    # get the positions that are polymorphic in at least one of the samples
-                    locs_var = set()
-                    for sample in samples_subset:
-                        for loc in positions:
-                            if sample in positions[loc].samples:
-                                if positions[loc].is_polymorphic(sample, cutoff=float(cutoff)):
-                                    if loc not in locs_var:
-                                        locs_var.add(loc)
-                    # get the fraction of the core genome that is variable
-                    fraction_variable = round(len(locs_var) / core_length * 100, 2)
-                    df_cum_curve = df_cum_curve._append({'host': host, 'curve_id': curve_id, 'nb_samples': nb_samples, 'fraction_variable': fraction_variable, 'sdp': sdp, 'filt_type': cutoff}, ignore_index=True)
-    # for each cutoff write the df as a file and exlude the cutoff column
-    for cutoff in ['0', '0.01', '0.05', '0.1']:
-        df_cum_curve_filt = df_cum_curve[df_cum_curve['filt_type'] == cutoff]
-        df_cum_curve_filt = df_cum_curve_filt.drop(columns=['filt_type'])
-        df_cum_curve_filt.to_csv(f'{snvs_analysis_directory}/figures/{sdp}_cum_curve_filt_{cutoff}.txt', sep='\t', index=False)
 
 # Are there allles that are completely fixed in both samples but they are different in each.
 for sdp in sdp_list:
@@ -788,3 +592,73 @@ for sdp in sdp_list:
                 fh_out.write(f'{sample1}\t{sample2}\t{total_seen:,}: total_seen')
                 fh_out.write(f'{sample1}\t{sample2}\t{fixed_and_shared:,}: fixed_and_shared')
                 fh_out.write(f'{sample1}\t{sample2}\t{fixed_and_unique:,}: fixed_and_unique')
+
+# other variations tested
+# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
+#     shared = 0
+#     total = 0
+#     for loc in positions:
+#         if sample1 in positions[loc].samples and sample2 in positions[loc].samples:
+#             # for outputs labelled _corrected this condition is and
+#             # before, it was or (for the various cutoffs)
+#             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) or positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
+#                 total += 1
+#                 alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
+#                 alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
+#                 alleles_1.discard('.')
+#                 alleles_2.discard('.')
+#                 # for outputs labelled _corrected this condition is >= 1
+#                 # before, it was > 1
+#                 to_print_1 = [f'{x}:{positions[loc].freq_allele(sample1, x)}' for x in alleles_1]
+#                 to_print_2 = [f'{x}:{positions[loc].freq_allele(sample2, x)}' for x in alleles_2]
+#                 print(f'{loc}\t{sample1}\t{sample2}\t{to_print_1}\t{to_print_2}')
+#                 if len(alleles_1.intersection(alleles_2)) >= 1:
+#                     shared += 1
+#    return (shared, total)
+# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
+#     shared = 0
+#     total = 0
+#     for loc in positions:
+#         if any([positions[loc].is_polymorphic(sam, cutoff=cutoff_detect) for sam in all_samples if sam in positions[loc].samples]):
+#             total += 1
+#             # if position is present in both sample, it can be compared
+#             # if is not poly in at least 1 sample, consider it for counting
+#             alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
+#             alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
+#             alleles_1.discard('.')
+#             alleles_2.discard('.')
+#             # avoid cases where there is a missing allele in either sample
+#             # nothing left after discarding missing alleles
+#             if len(alleles_1) == 0 or len(alleles_2) == 0:
+#                 continue
+#             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) and positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
+#                 shared += 1
+#     return (shared, total)
+# def calc_shared_KE_approach(positions, sample1, sample2, cutoff_detect):
+#     shared = 0
+#     total = 0
+#     for loc in positions:
+#         if sample1 in positions[loc].samples and sample2 in positions[loc].samples:
+#             # if position is present in both sample, it can be compared
+#             # if is not poly in at least 1 sample, consider it for counting
+#             alleles_1 = set(positions[loc].alleles_detected(sample1, cutoff=cutoff_detect))
+#             alleles_2 = set(positions[loc].alleles_detected(sample2, cutoff=cutoff_detect))
+#             alleles_1.discard('.')
+#             alleles_2.discard('.')
+#             # avoid cases where there is a missing allele in either sample
+#             # nothing left after discarding missing alleles
+#             if len(alleles_1) == 0 or len(alleles_2) == 0:
+#                 continue
+#             if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) or positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
+#                 total += 1
+#                 if positions[loc].is_polymorphic(sample1, cutoff=cutoff_detect) and positions[loc].is_polymorphic(sample2, cutoff=cutoff_detect):
+#                     shared += 1
+#                 '''
+#                 It has never happened that there is only 1 shared allele
+#                 because if both the sites are polymorphic, they are always
+#                 polymorphic for at least 2 alleles if this is not true
+#                 that line will be printed.
+#                 '''
+#                 if alleles_1.intersection(alleles_2) == 1:
+#                     print(f'loc: {loc}, sample1: {sample1}, sample2: {sample2}, alleles_1: {[f"{al}:{positions[loc].freq_allele(sample1, al)}" for al in alleles_1]}, alleles_2: {[f"{al}:{positions[loc].freq_allele(sample2, al)}" for al in alleles_2]}, shared: {alleles_1.intersection(alleles_2)}')
+#     return (shared, total)

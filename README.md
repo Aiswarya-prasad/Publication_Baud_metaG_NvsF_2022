@@ -80,7 +80,15 @@ NOTE: this script is not optimized to run more easily. You can easily make it fa
 
 The script `./02_strain-level_analysis.sh` runs the first part of the analysis of strain-level variation.
 
+1. maps reads to the reduced database `beebiome_red_db` and filters bam files as done before
+2. makes softlinks to the required files and scripts and repeats community analysis using the scripts `core_cov_red.pl`, `core_cov.R`
+3. using these results, filters the bed_red files to *filt.bed files which only include core genes that are also present in at least 10x coverage in each sample that the species is present at at least 20x coverage and the concatenates the them to `all_filt.bed` which demarcates the regions to be used for snv analysis
+4. calculates the resulting core genome length using the script `calc_core_length.sh`
+5. using freebayes, carries out variant calling across all samples with thresholds of 0.1 for min allele frequency and 10 for minimum coverage
+6. using `vcfintersect` it subsets the resulting vcf files to inclucde only the regions specified in `all_filt.bed` and `vcfbreakmulti` to split lines specifying more that 2 alternate alleles in the same position, into separate line
+7. further filters the vcf file to only keep samples with suffecient coverage of each species using `filter_vcf_samples.sh` and `filt_vcf_samples.pl` and the scripts also split the combined vcf files into multiple files each containing only the information relevant to each species
 
+`parse_vcf_snvs.py` is then used to read the vcf files and pickle dictionaries containing information in each position as custom class (GenomePosition) objects. These dictionaries were then used to summarize results of various allele frequency thresholds and to generate the final set of intermediate files that were then parsed by `figures_strain-level_analyses.R` to plot figures
 
 ## Functional gene content analysis
 
@@ -96,6 +104,13 @@ The script `./03_functional_gene_content.sh` will:
 
 ## Other analyses
 
+### Core genome length summaries
+
+The shell script can be used to calculate core lengths of a given set of bed files. The python script reads the lengths from the resulting file and then calculates the length of the total genomes from the fna files and then calculates the % that comprises the core genome before and after filtering.
+
+### Gene length plots
+
+The python script here was used to make coverage vs gene length plots of genes in orthogroups that were detected to be significant and non-significant to check that this was not baised by the length of the genes. A few example plots can be seen in the figures directory. If the mapping is done and the coverage files made by samtools from the bam file are available, the code can be used (after appropriately modifying the path) to make many summary plots to visualize coverage across genes. The intermediate files are large and can take a while to be made.
 
 --------
 
