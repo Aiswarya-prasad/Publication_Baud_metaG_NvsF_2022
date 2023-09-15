@@ -3,7 +3,7 @@ library(ggplot2)
 library(ape)
 library(gridExtra)
 library(RColorBrewer)
-library(reshape)
+library(reshape2)
 library(ggrepel)
 library(qvalue)
 library(vegan)
@@ -702,5 +702,98 @@ ggplot(data = df_plot_div_bifido,
         # stat_compare_means()
         ggsave("figures/SuppFig3-pre-Shannon_diversity_bifido.pdf", width = 10, height = 12)
 
-# add unmapped reads stuff here
-########### resume here ###########
+# Plot results of profiling unmapped reads
+df_motus_raw <- read.csv("community_quantification/unmapped_reads_profiling/samples_merged.txt", sep = "\t", skip = 2, stringsAsFactors=FALSE)
+df_motus_raw_samples <- df_motus_raw %>%
+                          select(!consensus_taxonomy) %>%
+                          select(!X.mOTU) %>%
+                          select(!NCBI_tax_id) %>%
+                          mutate_all(as.numeric) %>%
+                          cbind("taxonomy" = df_motus_raw %>% select(X.mOTU))
+                          # mutate(sum_ab = rowSums(across(where(is.numeric)))) %>%
+                          #   filter(sum_ab > 0) %>%
+                          #     select(!sum_ab) %>%
+                              # filter(consensus_taxonomy != "unassigned")
+df_unassigned <- df_motus_raw_samples %>%
+                  filter(X.mOTU == "unassigned")
+tax_info <- df_motus_raw %>%
+              select(consensus_taxonomy, X.mOTU) %>%
+              unique() %>%
+                separate(into = c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"), col = consensus_taxonomy, sep = "\\|")
+df_motus_raw_samples_t <- as.data.frame(t(df_motus_raw_samples)) %>%
+              rownames_to_column("Sample")
+colnames(df_motus_raw_samples_t) <- c("Sample", df_motus_raw_samples$X.mOTU)
+df_motus <- df_motus_raw_samples_t %>%
+              pivot_longer(!Sample, names_to = "motu", values_to = "rel_ab") %>%
+                group_by(Sample, motu) %>%
+                  mutate(Present = ifelse(rel_ab > 0, 1, 0)) %>%
+                    group_by(motu) %>%
+                     mutate(Prevalence_num = sum(Present)) %>%
+                      mutate(Prevalence = mean(Present)) %>%
+                        left_join(tax_info, by = c("motu" = "X.mOTU"))
+readnum_dt <- fread("readnumbers.csv")
+setnames(readnum_dt, c("Sample","Raw","Bacterial_db","A_mellifera"))
+readnum_dt[, Leftover := Raw-Bacterial_db-A_mellifera]
+readnum_dt[, prop_bac := Bacterial_db/Raw]
+readnum_dt[, prop_amel := A_mellifera/Raw]
+reads <- readnum_dt %>%
+          mutate(unmapped_perc = round(Leftover/Raw*100)) %>%
+          mutate(unmapped_perc = paste0(unmapped_perc, " %")) %>%
+          select(Sample, unmapped_perc)
+meta_dt <- fread("SamplingGilles2019.csv", header = TRUE) %>%
+            left_join(reads)
+df_motus_combined <- df_motus %>%
+                      left_join(meta_dt) %>%
+                      mutate(rel_ab = as.numeric(rel_ab))
+Nlist <- c("N01","N02","N03","N04","N06","N07","N08","N09","N10","N11","N12","N13","N14","N15","N16")
+Flist <- c("F01","F02","F03","F04","F06","F07","F08","F09","F10","F11","F12","F13","F14","F15","F16")
+samplelist <- c(Nlist, Flist)
+sample_order <- c(Nlist, Flist)
+df_motus_combined %>% filter(rel_ab > 0.01) %>%
+  filter(is.na(Genus))
+split_genus <- function(g_name){
+  final_name <- g_name
+  if (!is.na(g_name)) {
+    # if (grepl(" ", g_name)) {
+    #   # split by space and keep all but the text after the last space
+    #   final_name <- strsplit(g_name, " ")[[1]][-length(strsplit(g_name, " ")[[1]])]
+    # }
+    final_name <- strsplit(g_name, "g__")[[1]][2]
+  }
+  return(final_name)
+}
+genera_added <- df_motus_combined %>% ungroup() %>%
+                filter(rel_ab > 0.01) %>% 
+                mutate(Genus = Vectorize(split_genus)(Genus)) %>% 
+                arrange(Sample, rel_ab) %>% pull(Genus) %>% unlist %>% unique()
+ggplot(df_motus_combined %>% 
+        filter(rel_ab > 0.01) %>%
+        mutate(Genus = Vectorize(split_genus)(Genus)),
+       aes(x = factor(Sample, samplelist), 
+           y = rel_ab,
+          fill = factor(Genus, genera_added))) +
+                geom_bar(position = "stack", stat = "identity", color = "black", size = 0.2) +
+                geom_text(aes(label = unmapped_perc,
+                              y = -0.03,
+                              group = Sample,
+                          ), size = 3, angle = 45) +
+                labs(fill = "Genus", y = "mOTUs2 Relative abundance", x = "Sample") +
+                facet_wrap(~Sample_type, scales="free") +
+                  make_theme(setFill = T, max_colors = length(genera_added),
+                             palettefill = "Set1",
+                             leg_pos = "bottom",
+                             guide_nrow = 10,
+                             leg_size = 12,
+                             x_angle=45 ,x_vj=1.2, x_hj=1, x_size=12,
+                             y_angle=0 ,y_vj=0, y_hj=0, y_size=12
+                  ) +
+                  theme(axis.title.x = element_text(size = 18),
+                      axis.title.y = element_text(size = 18),
+                      legend.title = element_text(size = 18),
+                      strip.text.x = element_text(size = 18),
+                )
+  ggsave("figures/SuppFig2-pre-motus2_unmapped.pdf", width = 12, height = 12)
+df_to_write <- df_motus_combined %>% 
+        filter(rel_ab > 0.01) %>%
+        mutate(Genus = Vectorize(split_genus)(Genus))
+write.csv(df_to_write, "community_quantification/unmapped_reads_profiling/motus2_profile.csv", quote = F, row.names = FALSE)

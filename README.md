@@ -65,6 +65,7 @@ The script `./01_community_composition_analysis.sh` will:
 1. map the filtered reads against the core genes of the beebiome bacterial database
    * It creates (after deleting any pre-existing directory of the same name) `mapping_full_db`
    * For each sample, it maps the reads to the beebiome_db and filters the resulting sam file using the script `filter_sam_aln_length.pl` to remove alignments with less than 50 matches. It also removes chimeric alignments and filters by edit distance \< 5 and the deleted all the intermediate files.
+   * 
    * It extracted the reads that were unmapped and mapped with fewer than 50 matches and saves them as `mapping_full_db/${sample_tag}_vs_db_unmapped_R${1_or_2}.fastq`.
 2. use the mapping data to infer terminus coverage of each of the bacterial speciess
    * It creates (after deleting any pre-existing directory of the same name) `community_composition`
