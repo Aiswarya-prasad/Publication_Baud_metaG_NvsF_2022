@@ -27,7 +27,7 @@ A list of packages from the conda environments used for plotting and downstream 
 
 ## Data preparation: mapping and filtering 
 
-First, download all he necessary data. These are the raw sequencing reads (which should be put in a `raw_reads` directory).
+First, download all the necessary data. These are the raw sequencing reads (which should be put in a `raw_reads` directory).
 
 Then you can run the script `00_data_preparation.sh`.
 
