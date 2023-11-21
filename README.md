@@ -1,4 +1,4 @@
-Scripts for the "Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers" manuscript
+Scripts for the "Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers" manuscript available as pre-print [here](https://doi.org/10.1101/2022.12.29.522137).
 
 # Pre-requisites
 
@@ -46,16 +46,16 @@ The script requires the file `NexteraPE-PE.fa`, containing the Nextera PE adapte
 
 ### The reference databases
 
-The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](https://drive.switch.ch/index.php/s/vHmM6aIIFyDGQwm) **TODO: add zenodo link**. This link contains a zipped file. After unzipping it should contian the following files and directories:
+The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](https://drive.switch.ch/index.php/s/vHmM6aIIFyDGQwm) **TODO: add zenodo link**. This link contains a zipped file. After unzipping, it should contain the following files and directories:
 
 * `honeybee_genome.fasta` : fasta file containing the host (_Apis mellifera_) genome sequence
 * `beebiome_db` : fasta file of 198 concatenated genomes with one genome per entry (multi-line fasta) where the headers represent the genome identifier
-* `beebiome_red_db` : fasta file of 39 species representative genomes with one genome per entry (multi-line fasta) where the headers represent the genome identifier to be used for analysis of intra-specific variation
+* `beebiome_red_db` : fasta file of 39 species representative genomes with one genome per entry (multi-line fasta) where the headers represent the genome identifier to be used for the analysis of intra-specific variation
 * `fna_files` : directory containing genome sequence files and concatenated files where the concatenated files contain one fasta entry renamed to the genome identifier and all contigs concatenated into one entry
 * `ffn_files` : directory containing one file per genome listing the nucleotide sequence of all the predicted genes
 * `faa_files` : directory containing one file per genome listing the amino acid sequence of all the predicted genes
 * `bed_files` : directory containing bed files where the location of each of the predicted genes are indicated based on their position in the concatenated genome file
-* `single_ortho` : directory containing one file per phylotype listing all the single-copy orthogroups (OGs) identified by orthofinder where each line represents an OG id followed by a list of genes from each of the genomes of that phylotype that belong to that OG and the corresponding sequences of these genes can be found in the ffn file belonging to the respective genomecat fna
+* `single_ortho` : directory containing one file per phylotype listing all the single-copy orthogroups (OGs) identified by orthofinder where each line represents an OG id followed by a list of genes from each of the genomes of that phylotype that belong to that OG and the corresponding sequences of these genes can be found in the ffn file belonging to the respective genome
 * `red_bed_files` : directory containing bed files for species representative genomes that only list the positions genes that belong to the core orthogroups of their phylotype
 
 ### Running the community composition analysis
