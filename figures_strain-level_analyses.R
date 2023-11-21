@@ -98,7 +98,6 @@ sdp_list_restricted <- c("bapis","bifido_1.1","bifido_1.2","bifido_1.3","bifido_
                          "firm5_2","firm5_3","firm5_4","fper_1","gilli_1",
                          "gilli_2","snod_1")
 treat_colors <- c("#D55E00","#56B4E9","#F0E442")
-colnames(sdp_dt_umlt_prop)  
 samp_dt <- fread("SamplingGilles2019.csv")
 samp_dt <- samp_dt[, c("Sample", "Sample_type", "Location", "Number_guts", "Average_gut_mass")]
 
@@ -417,12 +416,18 @@ pcoa_plot<- function(dt_c, graph_title, adonis_info, locations_enabled=TRUE) {
       geom_line(aes(group=factor(hive)), alpha=0.5, size=0.5)+
       scale_size_manual(values=c("Foragers"=2,"Nurses"=3), guide="none")+
       scale_alpha_manual(values = c("Foragers"=1, "Nurses"=0.5), guide='none')+
-      scale_color_manual(values=c("UNIL"="#CC79A7",
-                                  "Cugy"="#0072B2",
-                                  "Yens"="#009E73",
-                                  "Liebefeld"="#E69F00",
-                                  "Vesancy"="#999999"),
+      scale_color_manual(values=c("UNIL"="#d7191c",
+                                  "Cugy"="#fdae61",
+                                  "Yens"="#ffffbf",
+                                  "Liebefeld"="#abd9e9",
+                                  "Vesancy"="#2c7bb6"),
                          name = "Host")+
+      # scale_color_manual(values=c("UNIL"="#CC79A7",
+      #                             "Cugy"="#0072B2",
+      #                             "Yens"="#009E73",
+      #                             "Liebefeld"="#E69F00",
+      #                             "Vesancy"="#999999"),
+      #                    name = "Host")+
       labs(x=as.character(axis_x_title),
            y=as.character(axis_y_title), 
            title=graph_title,

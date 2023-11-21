@@ -564,11 +564,16 @@ nmds_plot_loc <- function(data_dt, plot_title, info_df){
                                      shape=factor(Host,levels=treatments),
                                      color=factor(Location)))+
     geom_point(stat="identity",size=6, alpha = 0.75)+
-    scale_color_manual(values=c("UNIL"="#CC79A7",
-                                  "Cugy"="#0072B2",
-                                  "Yens"="#009E73",
-                                  "Liebefeld"="#E69F00",
-                                  "Vesancy"="#999999"))+
+    scale_color_manual(values=c("UNIL"="#d7191c",
+                                  "Cugy"="#fdae61",
+                                  "Yens"="#ffffbf",
+                                  "Liebefeld"="#abd9e9",
+                                  "Vesancy"="#2c7bb6"))+
+    # scale_color_manual(values=c("UNIL"="#CC79A7",
+    #                               "Cugy"="#0072B2",
+    #                               "Yens"="#009E73",
+    #                               "Liebefeld"="#E69F00",
+    #                               "Vesancy"="#999999"))+
     scale_shape_manual(values=c("Foragers" = 17, "Nurses" = 19))+
     labs(x="NMDS1",
          y="NMDS2",
