@@ -2,7 +2,7 @@ Scripts for the "Turnover of strain-level diversity modulates functional traits 
 
 # Pre-requisites
 
-The scripts and analyses rely on a manually curated database of bacterial strain genomes built by Kirsten Ellegaard ([beebiome_db](https://drive.switch.ch/index.php/s/vHmM6aIIFyDGQwm)). These strains were mostly isolated from guts of *Apis mellifera*, *Apis cerana* and bumble bee species.
+The scripts and analyses rely on a manually curated database of bacterial strain genomes built by Kirsten Ellegaard ([beebiome_db](10.5281/zenodo.10182034)). These strains were mostly isolated from guts of *Apis mellifera*, *Apis cerana* and bumble bee species.
 
 In terms of software, the scripts require:
 
@@ -46,7 +46,7 @@ The script requires the file `NexteraPE-PE.fa`, containing the Nextera PE adapte
 
 ### The reference databases
 
-The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](https://drive.switch.ch/index.php/s/vHmM6aIIFyDGQwm) **TODO: add zenodo link**. This link contains a zipped file. After unzipping, it should contain the following files and directories:
+The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](10.5281/zenodo.10182034) **TODO: add zenodo link**. This link contains a zipped file. After unzipping, it should contain the following files and directories:
 
 * `honeybee_genome.fasta` : fasta file containing the host (_Apis mellifera_) genome sequence
 * `beebiome_db` : fasta file of 198 concatenated genomes with one genome per entry (multi-line fasta) where the headers represent the genome identifier
@@ -129,3 +129,14 @@ Most of the scripts and analyses from this manuscript have been adapted, develop
 If you are using the scripts found here, please cite them as well.
 
 The scripts are authored and updated by multiple individuals. The perl scripts and some of the other scripts were authored by Kirsten Ellegaard and used in the analyses for the above mentioned publications. Other scripts were added and put together in this pipeline by Gilles Baud. Python scripts and updated R scripts for plotting were authored by Aiswarya Prasad.
+
+Shield: [![CC BY 4.0][cc-by-shield]][cc-by]
+
+This work is licensed under a
+[Creative Commons Attribution 4.0 International License][cc-by].
+
+[![CC BY 4.0][cc-by-image]][cc-by]
+
+[cc-by]: http://creativecommons.org/licenses/by/4.0/
+[cc-by-image]: https://i.creativecommons.org/l/by/4.0/88x31.png
+[cc-by-shield]: https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg
