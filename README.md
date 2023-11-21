@@ -1,4 +1,5 @@
-Scripts for the "Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers" manuscript available as pre-print [here](https://doi.org/10.1101/2022.12.29.522137).
+Scripts for the "Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers".
+An earlier version of this repository found [here](https://github.com/Aiswarya-prasad/Publication_Baud_metaG_NvsF_2022) is referenced in the [pre-print](https://doi.org/10.1101/2022.12.29.522137).
 
 # Pre-requisites
 
