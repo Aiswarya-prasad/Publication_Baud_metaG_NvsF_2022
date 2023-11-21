@@ -48,7 +48,7 @@ The script requires the file `NexteraPE-PE.fa`, containing the Nextera PE adapte
 
 ### The reference databases
 
-The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](10.5281/zenodo.10182034) **TODO: add zenodo link**. This link contains a zipped file. After unzipping, it should contain the following files and directories:
+The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](10.5281/zenodo.10182034). This link contains a zipped file. After unzipping, it should contain the following files and directories:
 
 * `honeybee_genome.fasta` : fasta file containing the host (_Apis mellifera_) genome sequence
 * `beebiome_db` : fasta file of 198 concatenated genomes with one genome per entry (multi-line fasta) where the headers represent the genome identifier
@@ -56,7 +56,7 @@ The reference database is to be downloaded as the (`beebiome_db`) directory. The
 * `fna_files` : directory containing genome sequence files and concatenated files where the concatenated files contain one fasta entry renamed to the genome identifier and all contigs concatenated into one entry
 * `ffn_files` : directory containing one file per genome listing the nucleotide sequence of all the predicted genes
 * `faa_files` : directory containing one file per genome listing the amino acid sequence of all the predicted genes
-* `bed_files` : directory containing bed files where the location of each of the predicted genes are indicated based on their position in the concatenated genome file
+* `bed_files` : directory containing bed files where the location of each of the predicted genes is indicated based on their position in the concatenated genome file
 * `single_ortho` : directory containing one file per phylotype listing all the single-copy orthogroups (OGs) identified by orthofinder where each line represents an OG id followed by a list of genes from each of the genomes of that phylotype that belong to that OG and the corresponding sequences of these genes can be found in the ffn file belonging to the respective genome
 * `red_bed_files` : directory containing bed files for species representative genomes that only list the positions genes that belong to the core orthogroups of their phylotype
 
@@ -71,7 +71,7 @@ The script `./01_community_composition_analysis.sh` will:
    * It extracted the reads that were unmapped and mapped with fewer than 50 matches and saves them as `mapping_full_db/${sample_tag}_vs_db_unmapped_R${1_or_2}.fastq`.
 2. use the mapping data to infer terminus coverage of each of the bacterial speciess
    * It creates (after deleting any pre-existing directory of the same name) `community_composition`
-   * It first makes symlinks of relavent scripts and files from the earlier directory inside this directory (./core_cov.pl, ./core_cov.R, ../mapping_full_db/\*_filt2x_sorted.bam ../beebiome_db/bed_files/\*.bed ../beebiome_db/single_ortho_files/*_single_ortho.txt)
+   * It first makes symlinks of relevant scripts and files from the earlier directory inside this directory (./core_cov.pl, ./core_cov.R, ../mapping_full_db/\*_filt2x_sorted.bam ../beebiome_db/bed_files/\*.bed ../beebiome_db/single_ortho_files/*_single_ortho.txt)
    * For each phylotype for which a \*_single_ortho.txt file is available, it runs the ./core_cov.pl script which writes the output files `*_corecov.txt` per phylotype containing in each tab-separated column, the species, sample, gene, reference position (position of the corresponding gene of the same orthogroup in the reference genome of the species) and coverage (of the gene in this sample). It summarises the coverage of each gene per line.
    * Next, the core_cov.R script used the `*_corecov.txt` file to create the `*_corecov_coord.txt` file summarising in each line per species per sample, in tab-separated columns the species, sample, terminus coverage, peak-trough-ratio and difference in max and min ori coverage (represented by the left and right extremes in the plot of coverage vs ref position). This script also makes the plots in `*_corecov.pdf`.
    * The resulting `*_corecov_coord.txt` files are used by the script `figures_community_composition.R` for plotting the figures.
@@ -84,10 +84,10 @@ The script `./02_strain-level_analysis.sh` runs the first part of the analysis o
 
 1. maps reads to the reduced database `beebiome_red_db` and filters bam files as done before
 2. makes softlinks to the required files and scripts and repeats community analysis using the scripts `core_cov_red.pl`, `core_cov.R`
-3. using these results, filters the bed_red files to *filt.bed files which only include core genes that are also present in at least 10x coverage in each sample that the species is present at at least 20x coverage and the concatenates the them to `all_filt.bed` which demarcates the regions to be used for snv analysis
+3. using these results, filters the bed_red files to *filt.bed files which only include core genes that are also present in at least 10x coverage in each sample that the species is present at at least 20x coverage and concatenates the them to `all_filt.bed` which demarcates the regions to be used for snv analysis
 4. calculates the resulting core genome length using the script `calc_core_length.sh`
 5. using freebayes, carries out variant calling across all samples with thresholds of 0.1 for min allele frequency and 10 for minimum coverage
-6. using `vcfintersect` it subsets the resulting vcf files to inclucde only the regions specified in `all_filt.bed` and `vcfbreakmulti` to split lines specifying more that 2 alternate alleles in the same position, into separate line
+6. using `vcfintersect` it subsets the resulting vcf files to inclucde only the regions specified in `all_filt.bed` and `vcfbreakmulti` to split lines specifying more that 2 alternate alleles in the same position, into a separate line
 7. further filters the vcf file to only keep samples with suffecient coverage of each species using `filter_vcf_samples.sh` and `filt_vcf_samples.pl` and the scripts also split the combined vcf files into multiple files each containing only the information relevant to each species
 
 `parse_vcf_snvs.py` is then used to read the vcf files and pickle dictionaries containing information in each position as custom class (GenomePosition) objects. These dictionaries were then used to summarize results of various allele frequency thresholds and to generate the final set of intermediate files that were then parsed by `figures_strain-level_analyses.R` to plot figures
@@ -100,7 +100,7 @@ The script `./03_functional_gene_content.sh` will:
 2. predict ORFs on the assembled contigs using [prodigal](https://github.com/hyattpd/Prodigal) and keep only ORFs that are at least 300 bp in length and marked as having a normal start and stop codon using the script `filt_ffn.pl`.
 3. concatenates all the genes from genomes in the beebiome_db database and does a blast search of each gene predicted from the assemblies against it to assign each contig to a species if at least 80% of the ORFs on it were matched against genes of that species and at least 10% of the ORFs were matched against genes of that species and no other species and the results summarised in `functional_gene_content/all_filt_ORFs_list_assigned.txt`.
 4. computes OGs using amino acid sequences of the ORFs and genes from genomes of the database with [OrthoFinder](https://github.com/davidemms/OrthoFinder)
-5. maps reads against a catalog of nucleotide sequences of filtered orfs collected from across all samples and genes of genomes from the beebiome_db database and and calculates the coverage of each orf in each sample using [samtools](http://www.htslib.org) `coverage`
+5. maps reads against a catalog of nucleotide sequences of filtered orfs collected from across all samples and genes of genomes from the beebiome_db database and calculates the coverage of each orf in each sample using [samtools](http://www.htslib.org) `coverage`
 6. The catalog is annotated using [eggnog](https://github.com/eggnogdb/eggnog-mapper).
 7. The rest of the analysis is carried out in the script `figures_functional_gene_content.R` which is run by the shell script as the last step and also makes the figures.
 
@@ -108,7 +108,7 @@ The script `./03_functional_gene_content.sh` will:
 
 ### Core genome length summaries
 
-The shell script can be used to calculate core lengths of a given set of bed files. The python script reads the lengths from the resulting file and then calculates the length of the total genomes from the fna files and then calculates the % that comprises the core genome before and after filtering.
+The shell script can be used to calculate the core lengths of a given set of bed files. The python script reads the lengths from the resulting file and then calculates the length of the total genomes from the fna files and then calculates the % that comprises the core genome before and after filtering.
 
 ### Gene length plots
 
