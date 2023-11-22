@@ -4,7 +4,7 @@ This repository is is referenced in the [preprint](https://doi.org/10.1101/2022.
 
 # Pre-requisites
 
-The scripts and analyses rely on a manually curated database of bacterial strain genomes ([beebiome_db](10.5281/zenodo.10182034)). These strains were mostly isolated from guts of *Apis mellifera*, *Apis cerana* and bumble bee species. The database was orginally built by Kirsten Ellegaard in the form [here](10.5281/zenodo.4661060). The publication of which this repository is a supplement uses the same approach but bundles a few downstream processed files along with the genomic database in the associated dataset made available as ([beebiome_db](10.5281/zenodo.10182034)).
+The scripts and analyses rely on a manually curated database of bacterial strain genomes ([beebiome_db](zenodo.org/records/10182034)). These strains were mostly isolated from guts of *Apis mellifera*, *Apis cerana* and bumble bee species. The database was orginally built by Kirsten Ellegaard in the form [here](https://zenodo.org/records/4661061). The publication of which this repository is a supplement uses the same approach but bundles a few downstream processed files along with the genomic database in the associated dataset made available as ([beebiome_db](zenodo.org/records/10182034)).
 
 In terms of software, the scripts require:
 
@@ -48,7 +48,7 @@ The script requires the file `NexteraPE-PE.fa`, containing the Nextera PE adapte
 
 ### The reference databases
 
-The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](10.5281/zenodo.10182034). This link contains a zipped file. After unzipping, it should contain the following files and directories:
+The reference database is to be downloaded as the (`beebiome_db`) directory. The reference database can be downloaded from [here](zenodo.org/records/10182034). This link contains a zipped file. After unzipping, it should contain the following files and directories:
 
 * `honeybee_genome.fasta` : fasta file containing the host (_Apis mellifera_) genome sequence
 * `beebiome_db` : fasta file of 198 concatenated genomes with one genome per entry (multi-line fasta) where the headers represent the genome identifier
