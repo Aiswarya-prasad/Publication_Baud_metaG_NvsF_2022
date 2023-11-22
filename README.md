@@ -116,6 +116,10 @@ The python script here was used to make coverage vs gene length plots of genes i
 
 --------
 
+If you use this database or code please cite:
+
+Baud, G. L., Prasad, A., Ellegaard, K. M., & Engel, P. (2022). Turnover of strain-level diversity modulates functional traits in the honeybee gut microbiome between nurses and foragers. bioRxiv, 2022-12. (https://www.biorxiv.org/content/10.1101/2022.12.29.522137v2.full)
+
 # Acknowledgement
 
 Most of the scripts and analyses from this manuscript have been adapted, developed or taken directly from the work of Kirsten Ellegaard, in particular the following publications:
@@ -128,17 +132,7 @@ Most of the scripts and analyses from this manuscript have been adapted, develop
 > PMID: 32531278;
 > doi: [10.1016/j.cub.2020.04.070](https://www.cell.com/current-biology/fulltext/S0960-9822(20)30586-8)
 
+
 If you are using the scripts found here, please cite them as well.
 
 The scripts are authored and updated by multiple individuals. The perl scripts and some of the other scripts were authored by Kirsten Ellegaard and used in the analyses for the above mentioned publications. Other scripts were added and put together in this pipeline by Gilles Baud. Python scripts and updated R scripts for plotting were authored by Aiswarya Prasad.
-
-Shield: [![CC BY 4.0][cc-by-shield]][cc-by]
-
-This work is licensed under a
-[Creative Commons Attribution 4.0 International License][cc-by].
-
-[![CC BY 4.0][cc-by-image]][cc-by]
-
-[cc-by]: http://creativecommons.org/licenses/by/4.0/
-[cc-by-image]: https://i.creativecommons.org/l/by/4.0/88x31.png
-[cc-by-shield]: https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg
